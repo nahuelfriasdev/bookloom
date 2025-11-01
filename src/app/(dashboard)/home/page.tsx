@@ -1,10 +1,9 @@
 import UserProfile from "@/components/UserProfile";
-import HomeHeader from "./HomeHeader";
 
 const HomePage = () => {
   return (
     <section>
-      <UserProfile />
+      <UserProfile permisos />
     </section>
   )
 } 

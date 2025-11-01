@@ -1,5 +1,5 @@
 export type AuthContextType = {
-  user: UserType;
+  user: UserWithStatsType | null;
   setUser: (user: UserType) => void;
   login: (
     email: string,
@@ -15,10 +15,30 @@ export type AuthContextType = {
 };
 
 export type UserType = {
-  uid?: string;
-  email?: string | null;
-  name?: string | null;
-  image?: unknown;
-  username?: string;
-  username_lowercase?: string;
-} | null;
+  uid: string;
+  email: string;
+  name: string;
+  username: string;
+  image?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+export type UserStatsType = {
+  booksRead: number;
+  pagesRead: number;
+  readingSessions: number;
+  journalsWritten: number;
+};
+
+export type UserWithStatsType = UserType & { stats?: UserStatsType };
+
+export type UserTypeDB = Omit <UserType, "uid"> 
+
+export type BookType = {
+  id: string;
+  title: string;
+  authors: string[];
+  thumbnail?: string;
+}
+

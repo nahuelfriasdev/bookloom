@@ -4,12 +4,12 @@ import { createUserWithEmailAndPassword, onAuthStateChanged, signInWithEmailAndP
 import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import { useRouter } from "next/navigation"
 import { createContext, useContext, useEffect, useState } from "react"
-import { AuthContextType, UserType } from "../../types";
+import { AuthContextType, UserType, UserWithStatsType } from "../../types";
 
 const AuthContext = createContext<AuthContextType | null>(null)
 
 export const AuthProvider: React.FC<{children: React.ReactNode}> = ({children}) => {
-  const [user, setUser] = useState<UserType>(null)
+  const [user, setUser] = useState<UserWithStatsType | null>(null)
   const router = useRouter();
 
   useEffect(() => {
@@ -17,8 +17,9 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({children}) 
       if(firebaseUser) {
         setUser({
           uid: firebaseUser?.uid,
-          email: firebaseUser?.email,
-          name: firebaseUser?.displayName,
+          email: firebaseUser.email ?? "",
+          name: firebaseUser.displayName ?? "",
+          username: "",
         })
         updateUserData(firebaseUser.uid);
         router.push("/home")
@@ -48,14 +49,31 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({children}) 
   const register = async (email: string, password: string, name:string, username:string) => {
     try {
       const response = await createUserWithEmailAndPassword(auth, email, password);
-      await setDoc(doc(firestore, "users", response?.user?.uid), {
+
+      const uid = response.user?.uid;
+
+      const userData = {
         name,
-        username: username,
-        username_lowercase: username.toLocaleLowerCase(),
+        username: username.toLocaleLowerCase(),
         email,
         uid: response?.user?.uid,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      }
+
+      const statsData = {
+        booksRead: 0,
+        pagesRead: 0,
+        readingSessions: 0,
+        journalsWritten: 0,
         createdAt: serverTimestamp()
-      })
+      }
+
+      await Promise.all([
+        setDoc(doc(firestore, "users", uid), userData),
+        setDoc(doc(firestore, "users", uid, "stats", "default"), statsData)
+      ])
+
       return {success: true}
     } catch(error: unknown) {
       let msg = "An error occurred";
@@ -73,15 +91,20 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({children}) 
       const docSnap = await getDoc(docRef);
       if(docSnap.exists()) {
         const data = docSnap.data();
-        const userData: UserType = {
+        console.log("User data:", data);
+        const userData: UserWithStatsType  = {
           uid: data?.uid,
           email: data.email || null,
           name: data.name || null,
           image: data.image || null,
-          username: data.username || null,
-          username_lowercase: data.username_lowercase || null,
+          username: data.username.toLowerCase() || null,
         }
-        setUser(userData);
+
+          const statsRef = doc(firestore, "users", uid, "stats", "default");
+          const statsSnap = await getDoc(statsRef);
+          const statsData = statsSnap.exists() ? statsSnap.data() : null;
+
+         setUser({ ...userData, stats: statsData } as UserWithStatsType);
       }
     } catch (error:unknown) {
       console.log("Error fetching user data:", error);
