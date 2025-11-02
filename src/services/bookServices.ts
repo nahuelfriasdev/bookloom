@@ -1,4 +1,5 @@
 import axios from "axios";
+import { BookInCollectionType } from "../../types";
 
 export const fetchBooks = async (query: string) => {
   try {
@@ -12,10 +13,17 @@ export const fetchBooks = async (query: string) => {
       authors: item.volumeInfo.authors || [],
       thumbnail: item.volumeInfo.imageLinks?.thumbnail,
       description: item.volumeInfo.description,
-
     })) || [];
   } catch (error) {
     console.error("❌ Error al buscar libros:", error);
     return [];
   }
 };
+
+export const addBookToUserCollection = async (userId: string, bookData: BookInCollectionType) => {
+  try {
+    console.log("Adding book to user collection:", userId, bookData);
+  } catch (error) {
+    console.error("❌ Error al agregar libro a la colección del usuario:", error);
+  }
+}

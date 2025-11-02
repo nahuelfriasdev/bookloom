@@ -1,24 +1,47 @@
 "use client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { fetchBooks } from "@/services/bookServices";
 import Image from "next/image";
-import { useState } from "react";
-import { BookType } from "../../../../../types";
+import { useEffect, useState } from "react";
+import { BookInCollectionType, BookType } from "../../../../../types";
+import { Badge } from "@/components/ui/badge";
+import { BadgeCheckIcon } from "lucide-react";
+import { useBookSearch } from "@/hooks/useBookSearch";
+import { addBookToUserCollection, fetchBooks } from "@/services/bookServices";
 
 const AddBook = () => {
-  const [search, setSearch] = useState("");
-  const [books, setBooks] = useState<BookType[]>([]);
+  const { books, handleSearch } = useBookSearch(fetchBooks);
+  const [selectedBook, setSelectedBook] = useState<BookType | null>(null);
+  const [newBook, setnewBook] = useState<BookInCollectionType>();
 
-  const handleSearch = async (title:string) => {
-    if(title.length == 0) {
-      setBooks([]);
-      return;
-    };
-    const res = await fetchBooks(title);
-    console.log(res);
-    setBooks(res);
+  const statusOptions = [
+    { label: "Por Leer", value: "TO_READ" },
+    { label: "Leyendo", value: "READING" },
+    { label: "Finalizado", value: "COMPLETED" },
+  ];
+
+  const handleAddBook = () => {
+    if (!selectedBook && !newBook) return;
+
+    if(newBook?.status === "TO_READ") newBook.pagesRead = 0;
+
+    if(newBook?.status === "COMPLETED") newBook.pagesRead = newBook.pageCount;
+    
+    addBookToUserCollection("currentUserId", newBook!);
   }
+
+  useEffect(() => {
+  if (selectedBook) {
+    setnewBook({
+      title: selectedBook.title || "",
+      authors: selectedBook.authors || [],
+      thumbnail: selectedBook.thumbnail || "",
+      status: "TO_READ",
+      pageCount: 0,
+      pagesRead: 0,
+    });
+  }
+}, [selectedBook]);
 
   return (
     <>
@@ -27,24 +50,99 @@ const AddBook = () => {
         <Input onChange={(e) => handleSearch(e.target.value)}/>
 
         {books.length > 0 && (
-          <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {books.map((book) => (
-              <div key={book.id} className="border p-4 rounded-lg" onClick={() => handleSearch(book.id)}>
-                <Image 
-                  src={book.thumbnail || "/defaultAvatar.png"} 
-                  alt={book.title} 
-                  width={128} 
-                  height={192} 
-                  className="mb-2 object-cover mx-auto"
-                />
-                <h3 className="font-medium">{book.title}</h3>
-                <p className="text-sm text-muted-foreground">{book.authors.join(", ")}</p>
-              </div>
-            ))}
-          </div>
-        )}
+          <article className="mt-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {!!selectedBook 
+            ? 
+              (
+                <>
+                  <div className="border p-4 rounded-lg">
+                    <Image
+                      src={selectedBook.thumbnail || "/defaultAvatar.png"}
+                      alt={selectedBook.title}
+                      width={128}
+                      height={192}
+                    />
+                    <div>
+                      <h3 className="font-medium text-lg mt-2">{selectedBook.title}</h3>
+                      <p className="text-sm text-muted-foreground">Autores: {selectedBook.authors.join(", ")}</p>
+                    </div>
 
-        <Button className="mt-4 w-full">Agregar Libro</Button>
+                    <div className="flex items-center gap-2">
+                      <label htmlFor="pageCount" className="text-sm font-medium">Cantidad de páginas:</label>
+                      {/* hacerlo requerido al input pague count */}
+                      <Input id="pageCount" type="number" min={0} defaultValue={0} className="w-20" onChange={(e) => 
+                        {
+                          const value = parseInt(e.target.value, 10);
+                          if (isNaN(value) || value < 0) {
+                            e.target.value = "0";
+                            return;
+                          }
+                          e.target.value = "" + value;
+                          setnewBook(prev => prev ? { ...prev, pageCount: value } : prev);
+                        }
+                      }/> 
+                    </div>
+
+                    <div className="flex items-center gap-2 mt-2">
+                      {/* Hacer requerido esto tambien */}
+                      {statusOptions.map((option) => (
+                        <Badge
+                        variant="secondary"
+                        className={`text-black h-7 flex items-center justify-center cursor-pointer ${newBook?.status === option.value ? "bg-purple-300" : ""}`}
+                        onClick={() => setnewBook(prev => prev ? { ...prev, status: option.value } : prev)}
+                        key={option.value}
+                      >
+
+                        {newBook?.status === option.value && <BadgeCheckIcon className="mr-1" />}
+                        {option.label}
+                      </Badge>
+                      ))}
+                    </div>
+
+                    {/* Al cambiar a finalizado y volver a leyendo queda con el value max del libro, manejar ese bug!! */}
+                    {newBook?.status === "READING" && (
+                      <div className="flex items-center gap-2 mt-2">
+                        <label htmlFor="pageCount" className="text-sm font-medium">Cantidad de páginas leídas:</label>
+                        {/* hacerlo requerido ? se permite un 0 de respuesta?  */}
+                        <Input id="pageCount" type="number"  min={0} defaultValue={0} className="w-20" onChange={(e) => 
+                          {
+                            const value = parseInt(e.target.value, 10);
+                            if (isNaN(value) || value < 0) {
+                              e.target.value = "0";
+                              return;
+                            }
+                            e.target.value = "" + value;
+                            setnewBook(prev => prev ? { ...prev, pagesRead: value } : prev);
+                          }
+                        }/> 
+                      </div>
+                    )}
+                  </div>
+                  <Button className="mt-4 w-full" onClick={handleAddBook}>Agregar Libro</Button>
+                </>
+                
+              )
+            : 
+              <>
+                {books.map((book) => (
+                  <div key={book.id} className="border p-4 rounded-lg  cursor-pointer" onClick={() => setSelectedBook(book)}>
+                    <Image 
+                      src={book.thumbnail || "/defaultAvatar.png"} 
+                      alt={book.title} 
+                      width={128} 
+                      height={192} 
+                      className="mb-2 object-cover mx-auto"
+                    />
+                    <h3 className="font-medium">{book.title}</h3>
+                    <p className="text-sm text-muted-foreground">{book.authors.join(", ")}</p>
+                  </div>
+                ))}
+              </>
+            }
+          </article>
+        )}
+        
+        
 
       </section>
     </>

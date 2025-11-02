@@ -9,14 +9,14 @@ const CardAddNewBook = () => {
   return (
     <>
       <Card>
-        <CardContent className="p-4 cursor-pointer" onClick={() => setAddBook(true)}>
+        <CardContent className="p-4" onClick={() => setAddBook(true)}>
           <div className="h-min-16 h-auto">
             {addBook ? (
                 <AddBook />
               )
               :
               (
-                <div className="flex flex-col items-center justify-center">
+                <div className="flex flex-col items-center justify-center  cursor-pointer">
                   <p className="text-4xl font-bold text-muted-foreground hover:text-primary transition-colors">
                     +
                   </p>

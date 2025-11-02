@@ -42,3 +42,12 @@ export type BookType = {
   thumbnail?: string;
 }
 
+export type BookInCollectionType = Omit <BookType, "id"> & {
+  status: string;
+  pageCount: number;
+  pagesRead: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export type BookFetcher = (query: string) => Promise<BookType[]>;
