@@ -1,15 +1,15 @@
 "use client"
 import { auth, firestore } from "@/config/firebase";
 import { createUserWithEmailAndPassword, onAuthStateChanged, signInWithEmailAndPassword } from "firebase/auth";
-import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, limit, orderBy, query, serverTimestamp, setDoc, where } from "firebase/firestore";
 import { useRouter } from "next/navigation"
 import { createContext, useContext, useEffect, useState } from "react"
-import { AuthContextType, UserType, UserWithStatsType } from "../../types";
+import { AuthContextType, UserCurrentReading, UserProfileType, UserType } from "../../types";
 
 const AuthContext = createContext<AuthContextType | null>(null)
 
 export const AuthProvider: React.FC<{children: React.ReactNode}> = ({children}) => {
-  const [user, setUser] = useState<UserWithStatsType | null>(null)
+  const [user, setUser] = useState<UserProfileType | null>(null)
   const router = useRouter();
 
   useEffect(() => {
@@ -85,31 +85,64 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({children}) 
     }
   };
 
-  const updateUserData = async (uid: string) => {
-    try {
-      const docRef = doc(firestore, "users", uid);
-      const docSnap = await getDoc(docRef);
-      if(docSnap.exists()) {
-        const data = docSnap.data();
-        console.log("User data:", data);
-        const userData: UserWithStatsType  = {
-          uid: data?.uid,
-          email: data.email || null,
-          name: data.name || null,
-          image: data.image || null,
-          username: data.username.toLowerCase() || null,
-        }
+ const updateUserData = async (uid: string) => {
+  try {
+    // 🧩 Traer datos base del usuario
+    const userRef = doc(firestore, "users", uid);
+    const userSnap = await getDoc(userRef);
 
-          const statsRef = doc(firestore, "users", uid, "stats", "default");
-          const statsSnap = await getDoc(statsRef);
-          const statsData = statsSnap.exists() ? statsSnap.data() : null;
+    if (!userSnap.exists()) return console.log("Usuario no encontrado");
 
-         setUser({ ...userData, stats: statsData } as UserWithStatsType);
-      }
-    } catch (error:unknown) {
-      console.log("Error fetching user data:", error);
-    }
+    const data = userSnap.data();
+    const userData: UserProfileType = {
+      uid: data.uid,
+      email: data.email || null,
+      name: data.name || null,
+      image: data.image || null,
+      username: data.username.toLowerCase() || null,
+    };
+
+    // 📊 Stats
+    const statsRef = doc(firestore, "users", uid, "stats", "default");
+    const statsSnap = await getDoc(statsRef);
+    const statsData = statsSnap.exists() ? statsSnap.data() : null;
+
+    // 📚 Colección de libros
+    const booksRef = collection(firestore, "users", uid, "books");
+
+    // 1️⃣ Libro en lectura más reciente
+    const readingQuery = query(
+      booksRef,
+      where("status", "==", "READING"),
+      orderBy("addedAt", "desc"),
+      limit(1)
+    );
+    const readingSnap = await getDocs(readingQuery);
+    const currentReading =
+      readingSnap.docs.length > 0 ? readingSnap.docs[0].data() : null;
+
+    // 2️⃣ Dos libros completados más recientes
+    const completedQuery = query(
+      booksRef,
+      where("status", "==", "COMPLETED"),
+      orderBy("addedAt", "desc"),
+      limit(2)
+    );
+    const completedSnap = await getDocs(completedQuery);
+    const recentCompleted = completedSnap.docs.map((doc) => doc.data());
+
+    // 🧠 Guardar todo junto
+    setUser({
+      ...userData,
+      stats: statsData,
+      currentReading,
+      recentCompleted,
+    } as UserProfileType);
+
+  } catch (error) {
+    console.error("Error fetching user data:", error);
   }
+};
 
   const contextValue = {
     user,

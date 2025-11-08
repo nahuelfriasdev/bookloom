@@ -8,11 +8,20 @@ import { Badge } from "@/components/ui/badge";
 import { BadgeCheckIcon } from "lucide-react";
 import { useBookSearch } from "@/hooks/useBookSearch";
 import { addBookToUserCollection, fetchBooks } from "@/services/bookServices";
+import { useParams } from "next/navigation";
 
-const AddBook = () => {
+interface CardAddNewBookProps {
+  onBookAdded: (book: BookInCollectionType) => void;
+  onClose: () => void;
+}
+
+const AddBook = ({onBookAdded, onClose }: CardAddNewBookProps ) => {
   const { books, handleSearch } = useBookSearch(fetchBooks);
   const [selectedBook, setSelectedBook] = useState<BookType | null>(null);
   const [newBook, setnewBook] = useState<BookInCollectionType>();
+  const [loading, setLoading] = useState(false);
+
+  const id = useParams().id as string;
 
   const statusOptions = [
     { label: "Por Leer", value: "TO_READ" },
@@ -20,19 +29,25 @@ const AddBook = () => {
     { label: "Finalizado", value: "COMPLETED" },
   ];
 
-  const handleAddBook = () => {
+  const handleAddBook = async () => {
     if (!selectedBook && !newBook) return;
-
+      setLoading(true);
     if(newBook?.status === "TO_READ") newBook.pagesRead = 0;
 
     if(newBook?.status === "COMPLETED") newBook.pagesRead = newBook.pageCount;
     
-    addBookToUserCollection("currentUserId", newBook!);
+    await addBookToUserCollection(id, newBook!);
+    onBookAdded(newBook!);
+    onClose();
+    setLoading(false);
+    setSelectedBook(null);
+    setnewBook(undefined);
   }
 
   useEffect(() => {
   if (selectedBook) {
     setnewBook({
+      id: selectedBook.id,
       title: selectedBook.title || "",
       authors: selectedBook.authors || [],
       thumbnail: selectedBook.thumbnail || "",
@@ -118,7 +133,7 @@ const AddBook = () => {
                       </div>
                     )}
                   </div>
-                  <Button className="mt-4 w-full" onClick={handleAddBook}>Agregar Libro</Button>
+                  <Button disabled={loading} className={`mt-4 w-full ${loading ? "bg-gray-300" : ""}`} onClick={handleAddBook}>Agregar Libro</Button>
                 </>
                 
               )

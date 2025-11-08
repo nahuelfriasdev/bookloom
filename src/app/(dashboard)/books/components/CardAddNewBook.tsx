@@ -2,8 +2,14 @@
 import { useState } from "react";
 import { Card, CardContent } from "../../../../components/ui/card";
 import AddBook from "./AddBook";
+import { BookInCollectionType } from "../../../../../types";
 
-const CardAddNewBook = () => {
+interface CardAddNewBookProps {
+  onBookAdded: (book: BookInCollectionType) => void;
+}
+
+
+const CardAddNewBook = ({ onBookAdded }: CardAddNewBookProps) => {
   const [addBook, setAddBook] = useState(false);
 
   return (
@@ -12,7 +18,7 @@ const CardAddNewBook = () => {
         <CardContent className="p-4" onClick={() => setAddBook(true)}>
           <div className="h-min-16 h-auto">
             {addBook ? (
-                <AddBook />
+                <AddBook onBookAdded={onBookAdded} onClose={() => setAddBook(false)} />
               )
               :
               (

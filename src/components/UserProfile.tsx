@@ -14,7 +14,6 @@ export default function UserProfile({permisos = false}: {permisos?: boolean}) {
   
   const router = useRouter();
 
-  console.log("UserProfile - user:", user);
 
   const user2 = {
     name: "Nahuel Frías",
@@ -39,7 +38,7 @@ export default function UserProfile({permisos = false}: {permisos?: boolean}) {
       completed: 23,
     },
   }
-
+  console.log("user:", user)
   if (!user) return null;
 
   return (
@@ -77,42 +76,60 @@ export default function UserProfile({permisos = false}: {permisos?: boolean}) {
       {/* Lectura actual */}
       <Card>
         <CardContent className="flex items-center gap-4 p-4">
+        {user.currentReading ? (
+          <>
           <Image
-            src={user2.currentReading.cover}
-            alt={user2.currentReading.title}
+            src={user.currentReading.thumbnail}
+            alt={user.currentReading.title}
             width={60}
             height={90}
             className="rounded-sm object-cover"
           />
           <div className="flex-1">
-            <p className="font-medium">{user2.currentReading.title}</p>
-            <Progress value={user2.currentReading.progress} className="mt-2" />
+            <p className="font-medium">{user.currentReading.title}</p>
+            <Progress value={user.currentReading.progress} className="mt-2" />
             <p className="text-xs text-muted-foreground mt-1">
-              {user2.currentReading.progress}% completado
+              {user.currentReading.progress}% completado
             </p>
           </div>
-        </CardContent>
+          </>
+        ) : (
+            <p>No hay una lectura en proceso</p>
+          )
+        }
+      </CardContent>
       </Card>
 
       {/* Lecturas recientes */}
       <Card>
         <CardContent className="p-4">
           <h3 className="text-base font-semibold mb-3">Lecturas recientes</h3>
-          <ul className="flex flex-col gap-3">
-            {user2.recentJournals.map((book, i) => (
-              <li key={i} className="flex items-center gap-3">
-                <div className="w-10 h-14 bg-muted rounded-sm flex items-center justify-center text-xs text-muted-foreground">
-                  📖
-                </div>
-                <div>
-                  <p className="font-medium">{book.title}</p>
-                  <p className="text-xs text-muted-foreground">
-                    Último journal: {book.lastJournal}
-                  </p>
-                </div>
-              </li>
-            ))}
-          </ul>
+          {user.recentCompleted && user.recentCompleted?.length > 0 
+            ? (
+              <ul className="flex flex-col gap-3">
+                {user.recentCompleted && user.recentCompleted.map((book, i) => (
+                  <li key={i} className="flex items-center gap-3">
+                    <Image
+                      src={book.thumbnail}
+                      alt={book.title}
+                      width={60}
+                      height={90}
+                      className="rounded-sm object-cover"
+                    />
+                    <div>
+                      <p className="font-medium">{book.title}</p>
+                      {/* <p className="text-xs text-muted-foreground">
+                        Último journal: {book.lastJournal}
+                      </p> */}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p>Todavia no hay lexturas completadas</p>
+            )
+          }
+          
         </CardContent>
       </Card>
 
@@ -121,20 +138,21 @@ export default function UserProfile({permisos = false}: {permisos?: boolean}) {
         <CardContent className="p-4">
           <h3 className="text-base font-semibold mb-2">Meta anual de lectura</h3>
           <p className="text-sm text-muted-foreground mb-2">
-            {user2.annualGoal.completed}/{user2.annualGoal.goal} libros completados
+            {/* {user2.annualGoal.completed}/{user2.annualGoal.goal} libros completados */}
+            * PROXIMAMENTE *
           </p>
-          <Progress
+          {/* <Progress
             value={(user2.annualGoal.completed / user2.annualGoal.goal) * 100}
-          />
+          /> */}
         </CardContent>
       </Card>
 
       {/* Acciones */}
       <div className="flex gap-2 justify-end">
         {permisos && (
-          <Button variant="outline" className="cursor-pointer">Editar perfil</Button>
+          <Button disabled variant="outline" className="cursor-pointer">Editar perfil</Button>
         )}
-        <Button className="cursor-pointer" onClick={() => router.push("/books")}>{permisos ? "Ver mis libros" : "Ver libros"}</Button>
+        <Button className="cursor-pointer" onClick={() => router.push(`/books/${user.uid}`)}>{permisos ? "Ver mis libros" : "Ver libros"}</Button>
         <Button className="cursor-pointer" onClick={() => signOut(auth)}>cerrar sesion</Button>
       </div>
     </div>

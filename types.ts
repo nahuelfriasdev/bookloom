@@ -1,5 +1,5 @@
 export type AuthContextType = {
-  user: UserWithStatsType | null;
+  user: UserProfileType | null;
   setUser: (user: UserType) => void;
   login: (
     email: string,
@@ -31,7 +31,18 @@ export type UserStatsType = {
   journalsWritten: number;
 };
 
-export type UserWithStatsType = UserType & { stats?: UserStatsType };
+export type UserCurrentReading = {
+  thumbnail: string
+  title: string
+  progress: number
+}
+
+export type UserRecentCompleted = {
+  thumbnail: string
+  title: string
+}
+
+export type UserProfileType = UserType & { stats?: UserStatsType, currentReading?: UserCurrentReading, recentCompleted?: UserRecentCompleted[]};
 
 export type UserTypeDB = Omit <UserType, "uid"> 
 
@@ -42,7 +53,7 @@ export type BookType = {
   thumbnail?: string;
 }
 
-export type BookInCollectionType = Omit <BookType, "id"> & {
+export type BookInCollectionType = BookType & {
   status: string;
   pageCount: number;
   pagesRead: number;
@@ -50,4 +61,32 @@ export type BookInCollectionType = Omit <BookType, "id"> & {
   updatedAt?: string;
 }
 
+export type BookCardProps = {
+  id: string
+  title: string
+  authors?: string[]
+  thumbnail?: string
+  status: string
+  onClick?: () => void
+}
+
 export type BookFetcher = (query: string) => Promise<BookType[]>;
+
+export type JournalType = {
+  date: string;
+  pagesRead: number;
+  readingTime: number;
+  notes: string;
+}
+
+export interface JournalWithPercentage extends JournalType {
+  percentage: string;
+}
+
+export type JournalCardProps = {
+  date: string;
+  pagesRead: number;
+  notes: string;
+  readingTime?: string;
+  percentage: string;
+}

@@ -6,7 +6,6 @@ export const useBookSearch = (fetchBooksFn: BookFetcher) => {
   const handleSearch = async (title:string) => {
     if(!title)  return setBooks([]);
     const res = await fetchBooksFn(title);
-    console.log(res);
     setBooks(res);
   }
 
